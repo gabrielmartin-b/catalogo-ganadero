@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — El Ganadero CV</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --rojo:    #C0000C;
+      --rojo-osc:#8B0000;
+      --negro:   #170808;
+      --gris:    #F6F1EF;
+      --blanco:  #FFFFFF;
+      --verde:   #25D366;
+      --naranja: #f39c12;
+      --azul:    #2980b9;
+      --playfair:'Playfair Display', serif;
+      --dm:      'DM Sans', sans-serif;
+    }
+    body { font-family: var(--dm); background: #0d0303; color: var(--blanco); min-height: 100vh; }
+
+    /* ── LOGIN ──────────────────────────────── */
+    #loginScreen {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 50% 120%, rgba(192,0,12,.35), #0d0303 70%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px;
+      transition: opacity .4s;
+    }
+    #loginScreen.hidden { opacity: 0; pointer-events: none; }
+    .login-card {
+      background: #1a0808;
+      border: 1px solid #3a1515;
+      border-radius: 18px;
+      padding: 44px 40px;
+      width: 100%; max-width: 380px;
+      text-align: center;
+      box-shadow: 0 30px 80px rgba(192,0,12,.2);
+      animation: loginIn .5s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes loginIn { from{opacity:0;transform:translateY(30px) scale(.95)} to{opacity:1;transform:none} }
+    .login-icon {
+      width: 64px; height: 64px;
+      background: var(--rojo);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 18px;
+      box-shadow: 0 8px 24px rgba(192,0,12,.4);
+    }
+    .login-title { font-family: var(--playfair); font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .login-sub { font-size: 12px; color: #777; margin-bottom: 28px; letter-spacing: .3px; }
+    .login-input {
+      width: 100%; padding: 13px 16px;
+      background: #0d0303; border: 1px solid #3a1515;
+      border-radius: 10px; color: var(--blanco);
+      font-family: var(--dm); font-size: 14px;
+      outline: none; margin-bottom: 12px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .login-input:focus { border-color: var(--rojo); box-shadow: 0 0 0 3px rgba(192,0,12,.15); }
+    .login-btn {
+      width: 100%; padding: 13px;
+      background: var(--rojo); color: var(--blanco);
+      border: none; border-radius: 10px;
+      font-family: var(--dm); font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: background .2s, transform .1s;
+      letter-spacing: .3px;
+    }
+    .login-btn:hover  { background: var(--rojo-osc); }
+    .login-btn:active { transform: scale(.98); }
+    .login-error { color: #ff7070; font-size: 12px; margin-top: 10px; min-height: 18px; }
+
+    /* ── PANEL ──────────────────────────────── */
+    #adminPanel { display: none; }
+    #adminPanel.visible { display: block; }
+
+    /* HEADER */
+    .admin-header {
+      background: var(--negro);
+      border-bottom: 1px solid #2a1010;
+      padding: 0 24px; height: 58px;
+      display: flex; align-items: center; gap: 14px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 20px rgba(0,0,0,.5);
+    }
+    .ah-logo-box {
+      width: 36px; height: 36px;
+      background: var(--rojo); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; flex-shrink: 0;
+    }
+    .ah-title { font-family: var(--playfair); font-size: 15px; font-weight: 700; flex: 1; }
+    .ah-title span { color: var(--rojo); }
+    .ah-live { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #666; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--verde); box-shadow: 0 0 8px #25D36670; animation: livePulse 2s infinite; }
+    @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .logout-btn {
+      padding: 6px 14px; background: transparent;
+      border: 1px solid #2a1010; border-radius: 20px;
+      color: #666; font-family: var(--dm); font-size: 11px;
+      cursor: pointer; transition: color .2s, border-color .2s;
+    }
+    .logout-btn:hover { color: var(--blanco); border-color: #555; }
+
+    /* STATS */
+    .stats-bar {
+      max-width: 1200px; margin: 20px auto 0;
+      padding: 0 20px;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    }
+    .stat-card {
+      background: #1a0808; border: 1px solid #2a1010;
+      border-radius: 12px; padding: 16px 14px;
+      text-align: center; transition: transform .2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-num { font-family: var(--playfair); font-size: 34px; font-weight: 900; line-height: 1; }
+    .stat-num.rojo    { color: var(--rojo); }
+    .stat-num.naranja { color: var(--naranja); }
+    .stat-num.azul    { color: var(--azul); }
+    .stat-num.verde   { color: var(--verde); }
+    .stat-label { font-size: 10px; color: #666; margin-top: 4px; text-transform: uppercase; letter-spacing: 1.2px; }
+
+    /* TABS */
+    .tabs-wrap { max-width: 1200px; margin: 18px auto 0; padding: 0 20px; }
+    .tabs {
+      display: flex; gap: 3px;
+      background: #1a0808; border: 1px solid #2a1010;
+      border-radius: 12px; padding: 4px; overflow-x: auto;
+    }
+    .tab {
+      padding: 8px 14px; border: none; background: transparent;
+      color: #666; font-family: var(--dm); font-size: 12px; font-weight: 600;
+      border-radius: 9px; cursor: pointer; white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+      transition: background .15s, color .15s;
+    }
+    .tab.active { background: var(--rojo); color: var(--blanco); }
+    .tab .tbadge {
+      background: rgba(255,255,255,.1); border-radius: 20px;
+      padding: 1px 7px; font-size: 10px; font-weight: 700;
+    }
+    .tab.active .tbadge { background: rgba(255,255,255,.25); }
+
+    /* GRID */
+    .orders-wrap { max-width: 1200px; margin: 16px auto; padding: 0 20px 80px; }
+    .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); gap: 13px; }
+
+    /* ORDER CARD */
+    .order-card {
+      background: #1a0808; border: 1px solid #2a1010;
+      border-radius: 12px; overflow: hidden;
+      animation: fadeUp .25s ease;
+      transition: transform .2s, border-color .2s;
+    }
+    .order-card:hover { transform: translateY(-2px); border-color: #3a1515; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+    .oc-head {
+      padding: 12px 14px; display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid #2a1010;
+    }
+    .oc-id { font-family: var(--playfair); font-size: 14px; font-weight: 700; flex: 1; }
+    .oc-time { font-size: 10px; color: #666; }
+    .status-badge {
+      padding: 3px 9px; border-radius: 20px;
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .8px;
+    }
+    .sb-pendiente  { background:rgba(192,0,12,.18); color:#ff9999; border:1px solid rgba(192,0,12,.35); }
+    .sb-aceptado   { background:rgba(243,156,18,.18); color:#ffd090; border:1px solid rgba(243,156,18,.35); }
+    .sb-preparando { background:rgba(41,128,185,.18); color:#80c8ff; border:1px solid rgba(41,128,185,.35); }
+    .sb-entregado  { background:rgba(37,211,102,.18); color:#80eeaa; border:1px solid rgba(37,211,102,.35); }
+    .sb-cancelado  { background:rgba(120,120,120,.12); color:#777; border:1px solid #333; }
+
+    .oc-items { padding: 10px 14px; }
+    .oc-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; font-size: 12.5px;
+      border-bottom: 1px solid #240f0f;
+    }
+    .oc-item:last-child { border-bottom: none; }
+    .oc-item-emoji { font-size: 14px; flex-shrink: 0; }
+    .oc-item-name  { flex: 1; color: #ccc; }
+    .oc-item-qty   { color: #777; font-size: 11px; }
+    .oc-item-price { color: var(--rojo); font-weight: 600; font-size: 12px; white-space: nowrap; }
+
+    .oc-nota {
+      margin: 2px 14px 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid #2a1010;
+      border-radius: 8px;
+      font-size: 11.5px; color: #888; font-style: italic;
+    }
+
+    .oc-footer {
+      padding: 11px 14px; border-top: 1px solid #2a1010;
+      display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    }
+    .oc-total { font-family: var(--playfair); font-size: 19px; font-weight: 900; color: var(--rojo); flex: 1; }
+
+    .action-btn {
+      padding: 7px 11px; border: none; border-radius: 8px;
+      font-family: var(--dm); font-size: 11.5px; font-weight: 700;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+    }
+    .action-btn:hover  { opacity: .85; }
+    .action-btn:active { transform: scale(.95); }
+    .btn-aceptar  { background: var(--naranja); color: #000; }
+    .btn-preparar { background: var(--azul);    color: #fff; }
+    .btn-entregar { background: var(--verde);   color: #fff; }
+    .btn-cancelar {
+      background: transparent;
+      border: 1px solid #333; color: #666;
+    }
+    .btn-cancelar:hover { border-color: var(--rojo); color: #ff8080; }
+
+    /* EMPTY */
+    .empty-state {
+      grid-column: 1/-1; text-align: center;
+      padding: 70px 20px; color: #444;
+    }
+    .empty-state .ei { font-size: 52px; margin-bottom: 14px; }
+    .empty-state p { font-size: 13px; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(70px);
+      background: #1a0808; border: 1px solid var(--verde);
+      color: var(--verde); padding: 10px 22px; border-radius: 30px;
+      font-size: 13px; font-weight: 600; z-index: 999;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+      white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: var(--rojo); color: #ff8080; }
+
+    /* RESPONSIVE */
+    @media (max-width: 700px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .orders-grid { grid-template-columns: 1fr; }
+      .admin-header { padding: 0 14px; }
+      .login-card { padding: 36px 24px; }
+    }
+    @media (max-width: 400px) {
+      .ah-title { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-icon">🥩</div>
+    <div class="login-title">Panel Administrativo</div>
+    <div class="login-sub">Districarnes El Ganadero CV</div>
+    <input type="password" id="passInput" class="login-input" placeholder="Contraseña de acceso" autocomplete="current-password" />
+    <button class="login-btn" id="loginBtn">Ingresar al panel</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ══ PANEL ══════════════════════════════════════ -->
+<div id="adminPanel">
+
+  <header class="admin-header">
+    <div class="ah-logo-box">🥩</div>
+    <div class="ah-title">El Ganadero <span>Admin</span></div>
+    <div class="ah-live"><span class="live-dot"></span>En vivo</div>
+    <button class="logout-btn" id="logoutBtn">Salir</button>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-num rojo"    id="sPendiente">—</div>
+      <div class="stat-label">Pendientes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num naranja" id="sAceptado">—</div>
+      <div class="stat-label">Aceptados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num azul"    id="sPreparando">—</div>
+      <div class="stat-label">Preparando</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num verde"   id="sEntregado">—</div>
+      <div class="stat-label">Entregados hoy</div>
+    </div>
+  </div>
+
+  <div class="tabs-wrap">
+    <div class="tabs" id="tabsRow">
+      <button class="tab active" data-tab="pendiente">
+        🔴 Pendientes <span class="tbadge" id="tPendiente">0</span>
+      </button>
+      <button class="tab" data-tab="aceptado">
+        🟡 Aceptados <span class="tbadge" id="tAceptado">0</span>
+      </button>
+      <button class="tab" data-tab="preparando">
+        🔵 Preparando <span class="tbadge" id="tPreparando">0</span>
+      </button>
+      <button class="tab" data-tab="entregado">
+        🟢 Entregados <span class="tbadge" id="tEntregado">0</span>
+      </button>
+      <button class="tab" data-tab="cancelado">
+        ⚫ Cancelados <span class="tbadge" id="tCancelado">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="orders-wrap">
+    <div class="orders-grid" id="ordersGrid">
+      <div class="empty-state"><div class="ei">⏳</div><p>Conectando…</p></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ FIREBASE + LÓGICA ════════════════════════ -->
+<script type="module">
+  import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore, collection, onSnapshot,
+    doc, updateDoc, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  /* ──────────────────────────────────────────────
+     🔧 PASO 1 — Pega aquí tu configuración Firebase
+     (la encuentras en: Firebase Console → tu proyecto
+      → Configuración → Tus apps → SDK de la Web)
+  ────────────────────────────────────────────── */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDvfIgxC4wHzhAR0Que6jydj93iyZecR_M",
+    authDomain:        "administracion-49b1d.firebaseapp.com",
+    projectId:         "administracion-49b1d",
+    storageBucket:     "administracion-49b1d.firebasestorage.app",
+    messagingSenderId: "1023443739789",
+    appId:             "1:1023443739789:web:c17b6bc3bd53e8de2b2ec4"
+  };
+
+  /* ──────────────────────────────────────────────
+     🔒 PASO 2 — Cambia esta contraseña
+  ────────────────────────────────────────────── */
+  const ADMIN_PASSWORD = "camilomartin40";
+
+  /* ── INICIALIZACIÓN ─────────────────────────── */
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  let allOrders  = {};
+  let currentTab = "pendiente";
+  let unsubscribe = null;
+
+  /* ── LOGIN ──────────────────────────────────── */
+  const loginScreen = document.getElementById("loginScreen");
+  const adminPanel  = document.getElementById("adminPanel");
+  const passInput   = document.getElementById("passInput");
+  const loginError  = document.getElementById("loginError");
+
+  function tryLogin() {
+    if (passInput.value === ADMIN_PASSWORD) {
+      sessionStorage.setItem("gAdminAuth", "1");
+      loginScreen.classList.add("hidden");
+      adminPanel.classList.add("visible");
+      startListener();
+    } else {
+      loginError.textContent = "Contraseña incorrecta. Inténtalo de nuevo.";
+      passInput.value = "";
+      passInput.focus();
+    }
+  }
+
+  document.getElementById("loginBtn").addEventListener("click", tryLogin);
+  passInput.addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    sessionStorage.removeItem("gAdminAuth");
+    if (unsubscribe) unsubscribe();
+    location.reload();
+  });
+
+  // Auto-login si ya estaba autenticado
+  if (sessionStorage.getItem("gAdminAuth") === "1") {
+    loginScreen.classList.add("hidden");
+    adminPanel.classList.add("visible");
+    startListener();
+  }
+
+  /* ── TABS ───────────────────────────────────── */
+  document.getElementById("tabsRow").addEventListener("click", e => {
+    const tab = e.target.closest("[data-tab]");
+    if (!tab) return;
+    currentTab = tab.dataset.tab;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    renderOrders();
+  });
+
+  /* ── LISTENER FIRESTORE ─────────────────────── */
+  function startListener() {
+    const q = query(collection(db, "pedidos"), orderBy("timestamp", "desc"));
+    unsubscribe = onSnapshot(q, snapshot => {
+      allOrders = {};
+      snapshot.forEach(d => { allOrders[d.id] = { id: d.id, ...d.data() }; });
+      updateStats();
+      renderOrders();
+    }, err => {
+      console.error("Firestore error:", err);
+      showToast("❌ Error de conexión", true);
+    });
+  }
+
+  /* ── ESTADÍSTICAS ───────────────────────────── */
+  function updateStats() {
+    const list  = Object.values(allOrders);
+    const today = new Date().toDateString();
+    const cnt   = { pendiente:0, aceptado:0, preparando:0, entregado:0, cancelado:0 };
+    let hoy = 0;
+
+    list.forEach(o => {
+      if (cnt[o.status] !== undefined) cnt[o.status]++;
+      if (o.status === "entregado") {
+        const ts = o.timestamp?.toDate?.();
+        if (ts && ts.toDateString() === today) hoy++;
+      }
+    });
+
+    document.getElementById("sPendiente").textContent  = cnt.pendiente;
+    document.getElementById("sAceptado").textContent   = cnt.aceptado;
+    document.getElementById("sPreparando").textContent = cnt.preparando;
+    document.getElementById("sEntregado").textContent  = hoy;
+
+    document.getElementById("tPendiente").textContent  = cnt.pendiente;
+    document.getElementById("tAceptado").textContent   = cnt.aceptado;
+    document.getElementById("tPreparando").textContent = cnt.preparando;
+    document.getElementById("tEntregado").textContent  = cnt.entregado;
+    document.getElementById("tCancelado").textContent  = cnt.cancelado;
+  }
+
+  /* ── RENDER TARJETAS ────────────────────────── */
+  function renderOrders() {
+    const grid = document.getElementById("ordersGrid");
+    const list = Object.values(allOrders).filter(o => o.status === currentTab);
+
+    if (!list.length) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <div class="ei">📭</div>
+          <p>No hay pedidos en esta sección</p>
+        </div>`;
+      return;
+    }
+    grid.innerHTML = list.map(buildCard).join("");
+  }
+
+  function buildCard(o) {
+    const tiempo   = o.timestamp ? timeAgo(o.timestamp.toDate()) : "—";
+    const shortId  = o.id.slice(0,6).toUpperCase();
+    const badge    = `<span class="status-badge sb-${o.status}">${o.status}</span>`;
+    const itemsHtml = (o.items || []).map(i => `
+      <div class="oc-item">
+        <span class="oc-item-emoji">${i.emoji || "🥩"}</span>
+        <span class="oc-item-name">${esc(i.name)}</span>
+        <span class="oc-item-qty">${i.qty} ${i.unit||""}</span>
+        <span class="oc-item-price">$${fmt(i.subtotal ?? (i.price * i.qty))}</span>
+      </div>`).join("");
+    const notaHtml = o.nota
+      ? `<div class="oc-nota">💬 ${esc(o.nota)}</div>` : "";
+    const actions  = buildActions(o.id, o.status);
+
+    return `
+      <div class="order-card">
+        <div class="oc-head">
+          <span class="oc-id">#${shortId}</span>
+          <span class="oc-time">${tiempo}</span>
+          ${badge}
+        </div>
+        <div class="oc-items">${itemsHtml}</div>
+        ${notaHtml}
+        <div class="oc-footer">
+          <span class="oc-total">$${fmt(o.total)}</span>
+          ${actions}
+        </div>
+      </div>`;
+  }
+
+  function buildActions(id, status) {
+    const a = (cls, label, next) =>
+      `<button class="action-btn ${cls}" data-id="${id}" data-next="${next}">${label}</button>`;
+    switch (status) {
+      case "pendiente":  return a("btn-aceptar","✓ Aceptar","aceptado")  + a("btn-cancelar","✕ Cancelar","cancelado");
+      case "aceptado":   return a("btn-preparar","🍳 Preparando","preparando") + a("btn-cancelar","✕ Cancelar","cancelado");
+      case "preparando": return a("btn-entregar","✓ Entregado","entregado");
+      default: return "";
+    }
+  }
+
+  /* delegación de eventos para botones de acción */
+  document.getElementById("ordersGrid").addEventListener("click", async e => {
+    const btn = e.target.closest("[data-id][data-next]");
+    if (!btn) return;
+    btn.disabled = true;
+    try {
+      await updateDoc(doc(db, "pedidos", btn.dataset.id), { status: btn.dataset.next });
+      showToast(statusMsg[btn.dataset.next] || "✓ Actualizado");
+    } catch (err) {
+      showToast("❌ Error: " + err.message, true);
+      btn.disabled = false;
+    }
+  });
+
+  const statusMsg = {
+    aceptado:   "✓ Pedido aceptado",
+    preparando: "🍳 En preparación",
+    entregado:  "🟢 Marcado como entregado",
+    cancelado:  "✕ Pedido cancelado"
+  };
+
+  /* ── UTILIDADES ─────────────────────────────── */
+  function fmt(n) {
+    return Number(n || 0).toLocaleString("es-CO");
+  }
+  function esc(s) {
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function timeAgo(d) {
+    const s = Math.floor((Date.now() - d) / 1000);
+    if (s < 60)    return "hace un momento";
+    if (s < 3600)  return `hace ${Math.floor(s/60)} min`;
+    if (s < 86400) return `hace ${Math.floor(s/3600)} h`;
+    return d.toLocaleDateString("es-CO", { day:"numeric", month:"short" });
+  }
+  function showToast(msg, isError = false) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "toast" + (isError ? " error" : "");
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2800);
+  }
+</script>
+</body>
+</html>
