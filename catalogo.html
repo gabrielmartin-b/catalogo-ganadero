@@ -894,6 +894,10 @@ window.toggleCart = () => {
 };
 
 /* ── WHATSAPP ── */
+// Antes de window.open(urlWa, '_blank')
+if (window.guardarPedido) {
+  await window.guardarPedido(cart, totalAmount, notaInput.value);
+}
 window.sendWhatsApp = () => {
   if (!cart.length) { alert('¡Agrega productos primero!'); return; }
   const nombre = document.getElementById('customerName').value.trim();
@@ -1008,6 +1012,22 @@ window.saveAdmin = async () => {
 
 /* ── ARRANQUE ── */
 initFirebase();
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = { /* tu config aquí */ };
+  const db = getFirestore(initializeApp(firebaseConfig));
+
+  window.guardarPedido = async (items, total, nota) => {
+    await addDoc(collection(db, "pedidos"), {
+      items, total, nota,
+      status: "pendiente",
+      timestamp: serverTimestamp()
+    });
+  };
+</script>
 </script>
 </body>
 </html>
