@@ -483,13 +483,14 @@
 </footer>
 
 <!-- ═══════════ FIREBASE ═══════════ -->
+<!-- Reemplaza TODO el bloque <script type="module">...</script> del catálogo por este -->
 <script type="module">
 import { initializeApp }                         from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set }        from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getFirestore, collection, addDoc, serverTimestamp }
+                                                 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ──────────────────────────────────────────
-   CONFIGURACIÓN FIREBASE — YA CONFIGURADA
-   ────────────────────────────────────────── */
+/* ─── TU CONFIGURACIÓN FIREBASE (ya la tienes, no cambies nada) ─── */
 const firebaseConfig = {
   apiKey:            "AIzaSyCQl-8SDpc2j3kZSeK3T0aCA4i6kVA0KpM",
   authDomain:        "ganadero-cv.firebaseapp.com",
@@ -500,27 +501,19 @@ const firebaseConfig = {
   appId:             "1:1005822824063:web:ganadero"
 };
 
-/* ──────────────────────────────────────────
-   CONTRASEÑA ADMIN — cámbiala cuando quieras
-   ────────────────────────────────────────── */
 const ADMIN_PASSWORD = 'ganadero2025';
 const PHONE          = '573103305527';
 
-/* ──────────────────────────────────────────
-   CATÁLOGO BASE (precios actualizados 2025)
-   ────────────────────────────────────────── */
+/* ─── CATÁLOGO BASE ─── */
 const BASE_PRODUCTS = [
-  // RES — CORTES FINOS
   { id:1,  cat:'res-fino',         emoji:'🥩', name:'Lomo Ancho',                          priceKg:36000 },
   { id:2,  cat:'res-fino',         emoji:'🥩', name:'Lomo Fino',                           priceKg:38000 },
   { id:3,  cat:'res-fino',         emoji:'🥩', name:'Punta de Anca',                       priceKg:34000 },
-  // RES — PRIMEROS CORTES
   { id:4,  cat:'res-primera',      emoji:'🍖', name:'Bola de Pierna',                      priceKg:30000 },
   { id:5,  cat:'res-primera',      emoji:'🍖', name:'Cadera con Colita',                   priceKg:30000 },
   { id:6,  cat:'res-primera',      emoji:'🍖', name:'Capón',                               priceKg:30000 },
   { id:7,  cat:'res-primera',      emoji:'🍖', name:'Centro de Pierna',                    priceKg:30000 },
   { id:8,  cat:'res-primera',      emoji:'🍖', name:'Posta',                               priceKg:30000 },
-  // RES — SEGUNDOS CORTES
   { id:9,  cat:'res-segunda',      emoji:'🍖', name:'Bola de Brazo',                       priceKg:28000 },
   { id:10, cat:'res-segunda',      emoji:'🍖', name:'Bota de Res',                         priceKg:30000 },
   { id:11, cat:'res-segunda',      emoji:'🍖', name:'Cadera de Res',                       priceKg:30000 },
@@ -536,45 +529,36 @@ const BASE_PRODUCTS = [
   { id:21, cat:'res-segunda',      emoji:'🍖', name:'Sobrebarriga Delgada',                priceKg:26000 },
   { id:22, cat:'res-segunda',      emoji:'🍖', name:'Sobrebarriga Gruesa',                 priceKg:25000 },
   { id:23, cat:'res-segunda',      emoji:'🍖', name:'Tortuga',                             priceKg:27000 },
-  // HUESOS DE RES
   { id:24, cat:'huesos-res',       emoji:'🦴', name:'Costilla Corriente',                  priceKg:22000 },
   { id:25, cat:'huesos-res',       emoji:'🦴', name:'Costilla Delantera',                  priceKg:24000 },
   { id:26, cat:'huesos-res',       emoji:'🦴', name:'Hueso de Agujas',                     priceKg:10000 },
   { id:27, cat:'huesos-res',       emoji:'🦴', name:'Hueso de Cogote',                     priceKg:18000 },
   { id:28, cat:'huesos-res',       emoji:'🦴', name:'Hueso de Paleta',                     priceKg:22000 },
   { id:29, cat:'huesos-res',       emoji:'🦴', name:'Hueso de Sustancia',                  priceKg: 3500 },
-  // VÍSCERAS ROJAS
   { id:30, cat:'visceras-rojas',   emoji:'❤️', name:'Corazón',                            priceKg:14000 },
   { id:31, cat:'visceras-rojas',   emoji:'❤️', name:'Entreverado',                        priceKg:15000 },
   { id:32, cat:'visceras-rojas',   emoji:'❤️', name:'Hígado',                             priceKg:18000 },
   { id:33, cat:'visceras-rojas',   emoji:'❤️', name:'Pajarilla',                          priceKg:18000 },
   { id:34, cat:'visceras-rojas',   emoji:'❤️', name:'Pulmón de Res',                      priceKg:10000 },
   { id:35, cat:'visceras-rojas',   emoji:'❤️', name:'Riñones',                            priceKg:10000 },
-  // VÍSCERAS BLANCAS
   { id:36, cat:'visceras-blancas', emoji:'🫀', name:'Cayo (Mondongo)',                    priceKg:18000 },
   { id:37, cat:'visceras-blancas', emoji:'🫀', name:'Chunchullo',                         priceKg:10000 },
   { id:38, cat:'visceras-blancas', emoji:'🫀', name:'Lengua de Vaca (arreglada)',         priceKg:22000 },
   { id:39, cat:'visceras-blancas', emoji:'🫀', name:'Mano de Res',                       priceKg:12000, unit:'unidad' },
   { id:40, cat:'visceras-blancas', emoji:'🫀', name:'Revuelto de Cuajo y Libro',         priceKg:14000 },
-  // CERDO EN CANAL
   { id:41, cat:'cerdo-canal',      emoji:'🐷', name:'Cerdo en Canal',                     priceKg:140000, unit:'unidad' },
-  // CERDO CON PIEL
   { id:42, cat:'cerdo-piel',       emoji:'🐷', name:'Cerdo Despresado c/ Piel (Chuleta)', priceKg:14500 },
   { id:43, cat:'cerdo-piel',       emoji:'🐷', name:'Pierna con Piel',                    priceKg:15000 },
   { id:44, cat:'cerdo-piel',       emoji:'🐷', name:'Costilomo con Piel',                 priceKg:15000 },
   { id:45, cat:'cerdo-piel',       emoji:'🐷', name:'Espinazo con Piel',                  priceKg:10000 },
   { id:46, cat:'cerdo-piel',       emoji:'🐷', name:'Pezuñas',                            priceKg:10000 },
-  // CERDO DESHUESADO
   { id:47, cat:'cerdo-des',        emoji:'🐷', name:'Pierna Deshuesada de Cerdo',         priceKg:16000 },
   { id:48, cat:'cerdo-des',        emoji:'🐷', name:'Brazo Deshuesado de Cerdo',          priceKg:15000 },
-  // CERDO SIN PIEL
   { id:49, cat:'cerdo-sinpiel',    emoji:'🐷', name:'Costilla sin Piel',                 priceKg:16000 },
   { id:50, cat:'cerdo-sinpiel',    emoji:'🐷', name:'Costilomo sin Piel',                priceKg:16000 },
   { id:51, cat:'cerdo-sinpiel',    emoji:'🐷', name:'Lomo Magro de Cerdo',               priceKg:18000 },
-  // HUESOS CERDO
   { id:52, cat:'cerdo-huesos',     emoji:'🦴', name:'Huesos Carnudos Medialuna',          priceKg:12000 },
   { id:53, cat:'cerdo-huesos',     emoji:'🦴', name:'Espinazo Carnudo',                   priceKg:12000 },
-  // TOCINOS
   { id:54, cat:'cerdo-tocinos',    emoji:'🥓', name:'Tocinos Carnudos (Pancetas)',        priceKg:16000 },
   { id:55, cat:'cerdo-tocinos',    emoji:'🥓', name:'Papadas',                            priceKg:12000 },
   { id:56, cat:'cerdo-tocinos',    emoji:'🥓', name:'Tocino Corriente',                   priceKg: 7000 },
@@ -596,7 +580,6 @@ const BASE_CONFIG = {
   horario:        'Lun–Dom 7:00 AM – 6:00 PM',
 };
 
-/* ── ETIQUETAS ── */
 const CAT_LABELS = {
   'all':'Todo el catálogo','res-fino':'Res — Cortes Finos','res-primera':'Res — Primeros Cortes',
   'res-segunda':'Res — Segundos Cortes','huesos-res':'Huesos de Res',
@@ -609,18 +592,16 @@ const CAT_LABELS = {
 const CAT_ORDER = ['res-fino','res-primera','res-segunda','huesos-res','visceras-rojas',
   'visceras-blancas','cerdo-canal','cerdo-piel','cerdo-des','cerdo-sinpiel','cerdo-huesos','cerdo-tocinos'];
 
-/* ── ESTADO MUTABLE ── */
-let PRODUCTS = BASE_PRODUCTS.map(p => ({...p}));
-let COMBOS   = BASE_COMBOS.map(c => ({...c}));
-let CONFIG   = {...BASE_CONFIG};
+let PRODUCTS    = BASE_PRODUCTS.map(p => ({...p}));
+let COMBOS      = BASE_COMBOS.map(c => ({...c}));
+let CONFIG      = {...BASE_CONFIG};
 let currentCat  = 'all';
 let currentUnit = 'kg';
 let quantities  = {};
 let cart        = [];
 let cartOpen    = false;
-let db;
+let db, firestoreDb;   // ← dos bases de datos: Realtime (precios) + Firestore (pedidos)
 
-/* Libra colombiana = 500 g → precio_lb = precio_kg / 2 */
 const priceLb = kg => kg / 2;
 const fmt     = n  => '$' + Math.round(n).toLocaleString('es-CO');
 
@@ -635,11 +616,13 @@ function setSyncStatus(state, text) {
   if (state === 'green') setTimeout(() => wrap.classList.add('hidden'), 3000);
 }
 
-/* ── FIREBASE ── */
+/* ── FIREBASE INIT ── */
 function initFirebase() {
   try {
-    const app = initializeApp(firebaseConfig);
-    db = getDatabase(app);
+    const app   = initializeApp(firebaseConfig);
+    db          = getDatabase(app);          // Realtime Database → precios
+    firestoreDb = getFirestore(app);         // Firestore → pedidos ← NUEVO
+
     onValue(ref(db, 'ganadero'), snapshot => {
       const data = snapshot.val();
       if (data) { applyData(data); }
@@ -658,10 +641,26 @@ function initFirebase() {
   }
 }
 
+/* ── GUARDAR PEDIDO EN FIRESTORE ── */
+async function guardarPedidoFirestore(items, total, nota) {
+  if (!firestoreDb) return;
+  try {
+    await addDoc(collection(firestoreDb, 'pedidos'), {
+      items,
+      total,
+      nota:   nota || '',
+      status: 'pendiente',
+      timestamp: serverTimestamp()
+    });
+  } catch(e) {
+    console.error('Error guardando pedido en Firestore:', e);
+  }
+}
+
 function applyData(data) {
-  if (data.prices)     PRODUCTS.forEach(p => { if (data.prices[p.id]     !== undefined) p.priceKg = data.prices[p.id]; });
-  if (data.comboPrices) COMBOS.forEach(c => { if (data.comboPrices[c.id] !== undefined) c.price   = data.comboPrices[c.id]; });
-  if (data.config)     Object.assign(CONFIG, data.config);
+  if (data.prices)      PRODUCTS.forEach(p => { if (data.prices[p.id]      !== undefined) p.priceKg = data.prices[p.id]; });
+  if (data.comboPrices) COMBOS.forEach(c   => { if (data.comboPrices[c.id] !== undefined) c.price   = data.comboPrices[c.id]; });
+  if (data.config)      Object.assign(CONFIG, data.config);
   renderDomicilioBanner();
   renderCatalog();
   renderDrawer();
@@ -770,12 +769,12 @@ function makeCard(p) {
   const isUnit = p.unit === 'unidad';
   const qty    = quantities[p.id] || 1;
   let unitLabel, unitPrice;
-  if (isUnit)             { unitLabel = 'unidad'; unitPrice = p.priceKg; }
-  else if (currentUnit === 'lb') { unitLabel = 'lb';    unitPrice = priceLb(p.priceKg); }
-  else                    { unitLabel = 'kg';    unitPrice = p.priceKg; }
-  const step = isUnit ? 1 : (currentUnit === 'lb' ? 1 : 0.5);
+  if (isUnit)                    { unitLabel = 'unidad'; unitPrice = p.priceKg; }
+  else if (currentUnit === 'lb') { unitLabel = 'lb';     unitPrice = priceLb(p.priceKg); }
+  else                           { unitLabel = 'kg';     unitPrice = p.priceKg; }
+  const step    = isUnit ? 1 : (currentUnit === 'lb' ? 1 : 0.5);
   const bgClass = isUnit ? 'gold' : '';
-  const card = document.createElement('div');
+  const card    = document.createElement('div');
   card.className = 'card'; card.id = 'card-' + p.id;
   card.innerHTML = `
     <div class="card-top-wrap">
@@ -798,15 +797,15 @@ function makeCard(p) {
 
 /* ── QTY ── */
 window.changeQty = (id, delta) => {
-  const p = PRODUCTS.find(x => x.id === id);
+  const p   = PRODUCTS.find(x => x.id === id);
   const min = (p && p.unit === 'unidad') ? 1 : (currentUnit === 'lb' ? 1 : 0.5);
   quantities[id] = Math.max(min, Math.round(((quantities[id] || min) + delta) * 10) / 10);
   syncCardQty(id);
 };
 window.setQty = (id, val) => {
-  const p = PRODUCTS.find(x => x.id === id);
+  const p   = PRODUCTS.find(x => x.id === id);
   const min = (p && p.unit === 'unidad') ? 1 : (currentUnit === 'lb' ? 1 : 0.5);
-  const v = parseFloat(val);
+  const v   = parseFloat(val);
   quantities[id] = isNaN(v) || v < min ? min : Math.round(v * 10) / 10;
   syncCardQty(id);
 };
@@ -815,17 +814,16 @@ function syncCardQty(id) {
   if (card) { const inp = card.querySelector('.qty-input'); if (inp) inp.value = quantities[id]; }
   const ci = cart.find(i => i.id === id);
   if (ci) {
-    const p = PRODUCTS.find(x => x.id === id);
+    const p  = PRODUCTS.find(x => x.id === id);
     const isU = p && p.unit === 'unidad';
-    ci.qty = quantities[id];
-    ci.unit = isU ? 'unidad' : currentUnit;
+    ci.qty       = quantities[id];
+    ci.unit      = isU ? 'unidad' : currentUnit;
     ci.unitPrice = isU ? p.priceKg : (currentUnit === 'lb' ? priceLb(p.priceKg) : p.priceKg);
     ci.subtotal  = ci.unitPrice * ci.qty;
     renderDrawer();
   }
 }
 
-/* ── UNIDAD ── */
 window.setUnit = u => {
   currentUnit = u;
   document.getElementById('btnKg').classList.toggle('active', u === 'kg');
@@ -836,7 +834,7 @@ window.setUnit = u => {
 
 /* ── CARRITO ── */
 window.addToCart = id => {
-  const p = PRODUCTS.find(x => x.id === id); if (!p) return;
+  const p   = PRODUCTS.find(x => x.id === id); if (!p) return;
   const isU = p.unit === 'unidad';
   const min = isU ? 1 : (currentUnit === 'lb' ? 1 : 0.5);
   const qty  = quantities[id] || min;
@@ -893,27 +891,35 @@ window.toggleCart = () => {
   if (cartOpen) renderDrawer();
 };
 
-/* ── WHATSAPP ── */
-// Antes de window.open(urlWa, '_blank')
-if (window.guardarPedido) {
-  await window.guardarPedido(cart, totalAmount, notaInput.value);
-}
-window.sendWhatsApp = () => {
+/* ── WHATSAPP — ahora guarda en Firestore antes de abrir el chat ── */
+window.sendWhatsApp = async () => {       // ← async es importante
   if (!cart.length) { alert('¡Agrega productos primero!'); return; }
+
   const nombre = document.getElementById('customerName').value.trim();
   const fecha  = new Date().toLocaleDateString('es-CO', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const total  = cart.reduce((a, b) => a + b.subtotal, 0);
+
+  /* 1. Guardar en Firestore (panel admin lo verá al instante) */
+  await guardarPedidoFirestore(
+    cart.map(i => ({ name:i.name, emoji:i.emoji, qty:i.qty, unit:i.unit, price:i.unitPrice, subtotal:i.subtotal })),
+    total,
+    nombre
+  );
+
+  /* 2. Armar y abrir el mensaje de WhatsApp */
   let msg = `🐂 *PEDIDO — Districarnes El Ganadero CV*\n`;
   if (nombre) msg += `👤 *${nombre}*\n`;
   msg += `📅 ${fecha}\n\n*PRODUCTOS SOLICITADOS:*\n`;
   cart.forEach((item, i) => {
     msg += `${i+1}. ${item.emoji} *${item.name}*\n   ${item.qty} ${item.unit} × ${fmt(item.unitPrice)} = *${fmt(item.subtotal)}*\n`;
   });
-  const total = cart.reduce((a,b) => a + b.subtotal, 0);
   msg += `\n💰 *TOTAL ESTIMADO: ${fmt(total)}*\n`;
   if (CONFIG.domicilioCosto > 0) msg += `🚚 Domicilio: ${fmt(CONFIG.domicilioCosto)}\n`;
   msg += `\n_Catálogo digital · Districarnes El Ganadero CV_\n📍 Cra. 9a #1210, Agua de Dios, Cundinamarca`;
+
   window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
 };
+
 window.openWaConsulta = () => {
   window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent('¡Hola! 👋 Tengo una consulta sobre los productos de *Districarnes El Ganadero CV*.')}`, '_blank');
 };
@@ -950,7 +956,9 @@ window.checkPass = () => {
     document.getElementById('adminPassInput').value = '';
   }
 };
-document.getElementById('adminLoginOverlay').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+document.getElementById('adminLoginOverlay').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
 
 function openAdminPanel() {
   document.getElementById('adm_domicilioText').value  = CONFIG.domicilioText;
@@ -984,7 +992,9 @@ function openAdminPanel() {
   document.getElementById('adminPanelOverlay').classList.add('open');
 }
 window.closeAdmin = () => document.getElementById('adminPanelOverlay').classList.remove('open');
-document.getElementById('adminPanelOverlay').addEventListener('click', function(e) { if (e.target === this) window.closeAdmin(); });
+document.getElementById('adminPanelOverlay').addEventListener('click', function(e) {
+  if (e.target === this) window.closeAdmin();
+});
 
 window.saveAdmin = async () => {
   if (!db) { document.getElementById('adminErrorMsg').textContent = '❌ Sin conexión con Firebase.'; return; }
@@ -1000,7 +1010,7 @@ window.saveAdmin = async () => {
   COMBOS.forEach(c   => { const i = document.getElementById('adm_c_' + c.id); if (i) c.price   = parseInt(i.value) || c.price;   comboPrices[c.id] = c.price; });
   try {
     await set(ref(db, 'ganadero'), { prices, comboPrices, config: CONFIG });
-    document.getElementById('adminSavedMsg').textContent = '✅ ¡Cambios publicados! Todos los usuarios verán los nuevos precios al instante.';
+    document.getElementById('adminSavedMsg').textContent = '✅ ¡Cambios publicados!';
     document.getElementById('adminErrorMsg').textContent = '';
     setSyncStatus('green', 'Guardado');
   } catch(e) {
@@ -1012,22 +1022,6 @@ window.saveAdmin = async () => {
 
 /* ── ARRANQUE ── */
 initFirebase();
-  <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = { /* tu config aquí */ };
-  const db = getFirestore(initializeApp(firebaseConfig));
-
-  window.guardarPedido = async (items, total, nota) => {
-    await addDoc(collection(db, "pedidos"), {
-      items, total, nota,
-      status: "pendiente",
-      timestamp: serverTimestamp()
-    });
-  };
-</script>
 </script>
 </body>
 </html>
